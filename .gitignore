@@ -1,3 +1,39 @@
+# Local / Project
 .env
 notes.md
 /doc/
+
+# Agent worktrees
+.worktrees/
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Go
+*.exe
+*.test
+*.out
+coverage.out
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+override.tf
+override.tf.json
+
+# Kubernetes / Secrets
+*kubeconfig*
+*.kubeconfig
+.env.*
+!.env.example
+
+# OS / IDE
+.DS_Store
+Thumbs.db
