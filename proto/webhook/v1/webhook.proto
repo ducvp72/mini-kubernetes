@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package webhook.v1;
+
+option csharp_namespace = "MiniK8s.Contracts.Webhook.V1";
+option go_package = "github.com/ducvp72/mini-kubernetes/services/webhook-service/gen/webhook/v1;webhookv1";
+
+service WebhookService {
+  rpc SendOrderCallback(SendOrderCallbackRequest) returns (SendOrderCallbackResponse);
+}
+
+message SendOrderCallbackRequest {
+  string order_code = 1;
+  string status = 2;
+  string callback_url = 3;
+  string correlation_id = 4;
+  int64 event_timestamp_unix_ms = 5;
+}
+
+message SendOrderCallbackResponse {
+  bool delivered = 1;
+  int32 http_status_code = 2;
+  int32 attempts = 3;
+  string error_message = 4;
+}

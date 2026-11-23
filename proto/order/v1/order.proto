@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package order.v1;
+
+option csharp_namespace = "MiniK8s.Contracts.Order.V1";
+option go_package = "github.com/ducvp72/mini-kubernetes/services/webhook-service/gen/order/v1;orderv1";
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING = 1;
+  ORDER_STATUS_CONFIRMED = 2;
+  ORDER_STATUS_FAILED = 3;
+}
+
+service OrderService {
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+}
+
+message CreateOrderRequest {
+  string idempotency_key = 1;
+  string customer_id = 2;
+  string sku = 3;
+  uint32 quantity = 4;
+  string unit_price = 5;
+  string callback_url = 6;
+  uint32 simulate_work_ms = 7;
+}
+
+message CreateOrderResponse {
+  string order_code = 1;
+  OrderStatus status = 2;
+  bool deduplicated = 3;
+  int64 created_at_unix_ms = 4;
+}
+
+message GetOrderRequest {
+  string order_code = 1;
+}
+
+message GetOrderResponse {
+  OrderItem order = 1;
+}
+
+message ListOrdersRequest {
+  string customer_id = 1;
+  uint32 page_size = 2;
+  string next_cursor = 3;
+  string prev_cursor = 4;
+}
+
+message ListOrdersResponse {
+  repeated OrderSummary items = 1;
+  string next_cursor = 2;
+  string prev_cursor = 3;
+  bool has_next = 4;
+  bool has_prev = 5;
+}
+
+message OrderItem {
+  string order_code = 1;
+  string customer_id = 2;
+  string sku = 3;
+  uint32 quantity = 4;
+  string unit_price = 5;
+  string total_amount = 6;
+  OrderStatus status = 7;
+  string callback_url = 8;
+  int64 created_at_unix_ms = 9;
+  int64 updated_at_unix_ms = 10;
+}
+
+message OrderSummary {
+  string order_code = 1;
+  string customer_id = 2;
+  string sku = 3;
+  uint32 quantity = 4;
+  string unit_price = 5;
+  string total_amount = 6;
+  OrderStatus status = 7;
+  int64 created_at_unix_ms = 8;
+}
