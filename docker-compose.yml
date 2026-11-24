@@ -15,6 +15,7 @@ services:
       - --collation-server=utf8mb4_0900_ai_ci
       - --max-connections=300
       - --innodb-lock-wait-timeout=10
+      - --log-bin-trust-function-creators=1
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -63,6 +64,30 @@ services:
         rpk topic describe order.created --brokers redpanda:9092
     restart: "no"
 
+  kafka-ui:
+    image: redpandadata/console:v2.7.2
+    container_name: mini-k8s-kafka-ui
+    restart: unless-stopped
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      redpanda-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BROKERS: "redpanda:9092"
+      KAFKA_SCHEMAREGISTRY_ENABLED: "false"
+      REDPANDA_ADMINAPI_ENABLED: "true"
+      REDPANDA_ADMINAPI_URLS: "http://redpanda:9644"
+      SERVER_LISTENPORT: "8080"
+    ports:
+      - "${KAFKA_UI_PORT:-8085}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/admin/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
   mock-webhook:
     image: mendhak/http-https-echo:35
     container_name: mini-k8s-mock-webhook
@@ -82,6 +107,7 @@ services:
     depends_on:
       - mock-webhook
     environment:
+      APP_ENV: "${APP_ENV:-local}"
       GRPC_PORT: "5002"
       HEALTH_PORT: "8082"
       MAX_CONCURRENT_CALLBACKS: "64"
@@ -111,6 +137,7 @@ services:
       webhook-service:
         condition: service_healthy
     environment:
+      APP_ENV: "${APP_ENV:-local}"
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__OrderDb: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:-mini_k8s_local};User=${MYSQL_USER:-minik8s};Password=${MYSQL_PASSWORD:-minik8spass123};Pooling=true;MinimumPoolSize=5;MaximumPoolSize=100;ConnectionTimeout=10;"
       Kafka__BootstrapServers: "redpanda:9092"
@@ -143,6 +170,7 @@ services:
       order-service:
         condition: service_healthy
     environment:
+      APP_ENV: "${APP_ENV:-local}"
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
       OrderService__Address: "http://order-service:5001"
