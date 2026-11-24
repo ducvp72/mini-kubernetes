@@ -5,6 +5,7 @@ BASE_URL="${OPEN_API_URL:-http://127.0.0.1:8080}"
 ORDER_HEALTH_URL="${ORDER_HEALTH_URL:-http://127.0.0.1:8081}"
 WEBHOOK_HEALTH_URL="${WEBHOOK_HEALTH_URL:-http://127.0.0.1:8082}"
 CALLBACK_URL="${CALLBACK_URL:-http://mock-webhook:8090/callback}"
+KAFKA_UI_URL="${KAFKA_UI_URL:-http://127.0.0.1:8085}"
 
 echo "==> 1. Checking health & readiness probes"
 curl -fsS "${BASE_URL}/healthz" >/dev/null
@@ -13,7 +14,12 @@ curl -fsS "${ORDER_HEALTH_URL}/healthz" >/dev/null
 curl -fsS "${ORDER_HEALTH_URL}/readyz" >/dev/null
 curl -fsS "${WEBHOOK_HEALTH_URL}/healthz" >/dev/null
 curl -fsS "${WEBHOOK_HEALTH_URL}/readyz" >/dev/null
-echo "OK: All 3 services healthy & ready."
+KAFKA_UI_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" "${KAFKA_UI_URL}")
+if [ "${KAFKA_UI_HTTP}" != "200" ]; then
+  echo "FAIL: Kafka UI at ${KAFKA_UI_URL} returned HTTP ${KAFKA_UI_HTTP} (expected 200)"
+  exit 1
+fi
+echo "OK: All 3 services healthy & ready, and Kafka UI (${KAFKA_UI_URL}) responded HTTP 200."
 
 IDEM_KEY="smoke-$(date +%s)-$$"
 CUSTOMER_ID="cust-smoke-$$"
