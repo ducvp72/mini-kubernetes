@@ -1,0 +1,35 @@
+# Order Service — Local Development / Docker Compose Defaults
+# Override container-specific addresses via environment variables (e.g. ConnectionStrings__OrderDb, Kafka__BootstrapServers, WebhookClient__Address).
+
+connectionStrings:
+  orderDb: "Server=127.0.0.1;Port=3306;Database=mini_k8s_local;User=minik8s;Password=minik8spass123;Pooling=true;MinimumPoolSize=5;MaximumPoolSize=100;ConnectionTimeout=10;"
+
+database:
+  applyMigrationsOnStartup: false
+  commandTimeoutSeconds: 5
+  migrationMaxRetries: 15
+  migrationRetryDelayMs: 2000
+  dbContextPoolSize: 128
+
+kafka:
+  bootstrapServers: "127.0.0.1:19092"
+  topic: "order.created"
+  consumerGroupId: "order-service-workers"
+  lingerMs: 5
+  batchSizeBytes: 65536
+  enableBackgroundWorkers: true
+
+outbox:
+  batchSize: 100
+  pollIntervalMs: 200
+  maxRetries: 5
+
+webhookClient:
+  address: "http://127.0.0.1:5002"
+  timeoutSeconds: 10
+
+grpc:
+  port: 5001
+
+health:
+  port: 8081

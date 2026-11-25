@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OrderService.Domain\OrderService.Domain.csproj" />
+    <ProjectReference Include="..\..\src\OrderService.Application\OrderService.Application.csproj" />
+    <ProjectReference Include="..\..\src\OrderService.Infrastructure\OrderService.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\OrderService.Grpc\OrderService.Grpc.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageReference Include="Testcontainers.MySql" Version="4.0.0" />
+    <PackageReference Include="Testcontainers.Redpanda" Version="4.0.0" />
+  </ItemGroup>
+</Project>
