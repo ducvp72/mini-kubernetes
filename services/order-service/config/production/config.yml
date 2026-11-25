@@ -1,0 +1,36 @@
+# Order Service — Production Kubernetes Configuration Template
+# Database credentials MUST be injected via Kubernetes Secret (ConnectionStrings__OrderDb).
+# NEVER store real credentials in this file.
+
+connectionStrings:
+  orderDb: "Server=mysql-mini-k8s-prod.mysql.database.azure.com;Port=3306;Database=mini_k8s_prod;User=OVERRIDE_VIA_ENV_SECRET;Password=OVERRIDE_VIA_ENV_SECRET;SslMode=Required;Pooling=true;MinimumPoolSize=10;MaximumPoolSize=200;ConnectionTimeout=10;"
+
+database:
+  applyMigrationsOnStartup: false
+  commandTimeoutSeconds: 5
+  migrationMaxRetries: 15
+  migrationRetryDelayMs: 2000
+  dbContextPoolSize: 256
+
+kafka:
+  bootstrapServers: "redpanda.mini-k8s-prod.svc.cluster.local:9092"
+  topic: "order.created"
+  consumerGroupId: "order-service-prod-workers"
+  lingerMs: 5
+  batchSizeBytes: 65536
+  enableBackgroundWorkers: true
+
+outbox:
+  batchSize: 200
+  pollIntervalMs: 100
+  maxRetries: 5
+
+webhookClient:
+  address: "http://webhook-service.mini-k8s-prod.svc.cluster.local:5002"
+  timeoutSeconds: 10
+
+grpc:
+  port: 5001
+
+health:
+  port: 8081

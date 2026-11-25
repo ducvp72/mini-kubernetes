@@ -1,0 +1,36 @@
+# Order Service — Staging Kubernetes Configuration Template
+# Database credentials MUST be injected via Kubernetes Secret (ConnectionStrings__OrderDb).
+# NEVER store real credentials in this file.
+
+connectionStrings:
+  orderDb: "Server=mysql-mini-k8s-staging.mysql.database.azure.com;Port=3306;Database=mini_k8s_staging;User=OVERRIDE_VIA_ENV_SECRET;Password=OVERRIDE_VIA_ENV_SECRET;SslMode=Required;Pooling=true;MinimumPoolSize=5;MaximumPoolSize=100;ConnectionTimeout=10;"
+
+database:
+  applyMigrationsOnStartup: false
+  commandTimeoutSeconds: 5
+  migrationMaxRetries: 15
+  migrationRetryDelayMs: 2000
+  dbContextPoolSize: 128
+
+kafka:
+  bootstrapServers: "redpanda.mini-k8s-staging.svc.cluster.local:9092"
+  topic: "order.created"
+  consumerGroupId: "order-service-staging-workers"
+  lingerMs: 5
+  batchSizeBytes: 65536
+  enableBackgroundWorkers: true
+
+outbox:
+  batchSize: 100
+  pollIntervalMs: 200
+  maxRetries: 5
+
+webhookClient:
+  address: "http://webhook-service.mini-k8s-staging.svc.cluster.local:5002"
+  timeoutSeconds: 10
+
+grpc:
+  port: 5001
+
+health:
+  port: 8081
