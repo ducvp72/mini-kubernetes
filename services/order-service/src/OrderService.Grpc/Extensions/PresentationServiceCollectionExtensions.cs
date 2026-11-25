@@ -17,14 +17,22 @@ public static class PresentationServiceCollectionExtensions
             options.MaxSendMessageSize = 4 * 1024 * 1024;
         });
 
+        services.AddGrpcReflection();
+
         return services;
     }
 
-    public static WebApplication MapOrderServiceEndpoints(this WebApplication app)
+    public static WebApplication MapOrderServiceEndpoints(
+        this WebApplication app,
+        bool enableReflection = true)
     {
         ArgumentNullException.ThrowIfNull(app);
 
         app.MapGrpcService<OrderGrpcService>();
+        if (enableReflection)
+        {
+            app.MapGrpcReflectionService();
+        }
 
         // Liveness probe: strictly process-alive only (zero DB/Kafka I/O to avoid cascading K8s restarts).
         app.MapGet("/healthz", static () => Results.Ok(new { status = "alive" }));
