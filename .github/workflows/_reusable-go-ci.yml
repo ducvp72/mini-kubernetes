@@ -24,14 +24,26 @@ jobs:
   go-ci:
     name: Vet, Build & Test (${{ inputs.service_name }})
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check service exists on branch
+        id: check
+        env:
+          SERVICE_NAME: ${{ inputs.service_name }}
+          WORKING_DIR: ${{ inputs.working_directory }}
+        run: |
+          if [ -f "${WORKING_DIR}/go.mod" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "### Skipped ${SERVICE_NAME} CI" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`${WORKING_DIR}/go.mod\` is not present on this branch yet." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Setup Go
+        if: steps.check.outputs.exists == 'true'
         uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go_version }}
@@ -39,12 +51,18 @@ jobs:
           cache-dependency-path: ${{ inputs.working_directory }}/go.sum
 
       - name: Go vet
+        if: steps.check.outputs.exists == 'true'
+        working-directory: ${{ inputs.working_directory }}
         run: go vet ./...
 
       - name: Go build
+        if: steps.check.outputs.exists == 'true'
+        working-directory: ${{ inputs.working_directory }}
         run: go build ./...
 
       - name: Go test (race + coverage)
+        if: steps.check.outputs.exists == 'true'
+        working-directory: ${{ inputs.working_directory }}
         env:
           SERVICE_NAME: ${{ inputs.service_name }}
         run: |
