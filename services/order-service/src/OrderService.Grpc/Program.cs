@@ -77,7 +77,7 @@ var readiness = app.Services.GetRequiredService<ReadinessState>();
 readiness.MarkReady();
 app.Lifetime.ApplicationStopping.Register(readiness.MarkDraining);
 
-app.MapOrderServiceEndpoints();
+app.MapOrderServiceEndpoints(serviceConfig.Grpc.EnableReflection);
 
 await app.RunAsync();
 return 0;

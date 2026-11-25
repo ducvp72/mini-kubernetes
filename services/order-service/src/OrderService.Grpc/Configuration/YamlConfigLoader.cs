@@ -151,7 +151,7 @@ public static class YamlConfigLoader
         config.Kafka ??= new KafkaConfig();
         config.Outbox ??= new OutboxConfig();
         config.WebhookClient ??= new WebhookClientConfig();
-        config.Grpc ??= new PortConfig();
+        config.Grpc ??= new GrpcConfig();
         config.Health ??= new PortConfig();
     }
 
@@ -183,6 +183,7 @@ public static class YamlConfigLoader
         OverrideInt(getEnv, "WebhookClient__TimeoutSeconds", "WebhookClient.TimeoutSeconds", v => config.WebhookClient.TimeoutSeconds = v, errors);
 
         OverrideInt(getEnv, "Grpc__Port", "Grpc.Port", v => config.Grpc.Port = v, errors);
+        OverrideBool(getEnv, "Grpc__EnableReflection", "Grpc.EnableReflection", v => config.Grpc.EnableReflection = v, errors);
         OverrideInt(getEnv, "Health__Port", "Health.Port", v => config.Health.Port = v, errors);
     }
 

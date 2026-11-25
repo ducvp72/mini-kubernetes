@@ -18,7 +18,7 @@ public sealed class OrderServiceConfig
 
     public WebhookClientConfig WebhookClient { get; set; } = new();
 
-    public PortConfig Grpc { get; set; } = new();
+    public GrpcConfig Grpc { get; set; } = new();
 
     public PortConfig Health { get; set; } = new();
 
@@ -48,6 +48,7 @@ public sealed class OrderServiceConfig
             ["WebhookClient:Address"] = WebhookClient.Address,
             ["WebhookClient:TimeoutSeconds"] = WebhookClient.TimeoutSeconds.ToString(CultureInfo.InvariantCulture),
             ["Grpc:Port"] = Grpc.Port.ToString(CultureInfo.InvariantCulture),
+            ["Grpc:EnableReflection"] = Grpc.EnableReflection.ToString(),
             ["Health:Port"] = Health.Port.ToString(CultureInfo.InvariantCulture)
         };
     }
@@ -100,6 +101,13 @@ public sealed class WebhookClientConfig
     public string? Address { get; set; }
 
     public int TimeoutSeconds { get; set; }
+}
+
+public sealed class GrpcConfig
+{
+    public int Port { get; set; }
+
+    public bool EnableReflection { get; set; } = true;
 }
 
 public sealed class PortConfig

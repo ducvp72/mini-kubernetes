@@ -30,6 +30,7 @@ webhookClient:
 
 grpc:
   port: 5001
+  enableReflection: true
 
 health:
   port: 8081
