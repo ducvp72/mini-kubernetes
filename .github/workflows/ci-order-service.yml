@@ -1,0 +1,47 @@
+name: CI/CD — order-service
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "services/order-service/**"
+      - "proto/order/v1/**"
+      - "proto/webhook/v1/**"
+      - ".github/workflows/ci-order-service.yml"
+      - ".github/workflows/_reusable-dotnet-ci.yml"
+      - ".github/workflows/_reusable-docker-deploy.yml"
+  push:
+    branches: [develop, main]
+    paths:
+      - "services/order-service/**"
+      - "proto/order/v1/**"
+      - "proto/webhook/v1/**"
+      - ".github/workflows/ci-order-service.yml"
+      - ".github/workflows/_reusable-dotnet-ci.yml"
+      - ".github/workflows/_reusable-docker-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-order-service-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/_reusable-dotnet-ci.yml
+    with:
+      service_name: order-service
+      solution_path: services/order-service/OrderService.sln
+      test_filter: ${{ github.event_name == 'pull_request' && 'TestCategory=Unit' || '' }}
+
+  build-and-push:
+    needs: test
+    uses: ./.github/workflows/_reusable-docker-deploy.yml
+    with:
+      service_name: order-service
+      dockerfile: services/order-service/Dockerfile
+      target_environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      push_image: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') }}
+    secrets: inherit

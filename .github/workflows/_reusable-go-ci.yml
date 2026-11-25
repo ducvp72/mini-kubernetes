@@ -1,0 +1,54 @@
+name: Reusable — Go Service CI
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: Logical service name (e.g., webhook-service)
+        required: true
+        type: string
+      working_directory:
+        description: Relative directory containing go.mod
+        required: true
+        type: string
+      go_version:
+        description: Go toolchain version
+        required: false
+        default: "1.26"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  go-ci:
+    name: Vet, Build & Test (${{ inputs.service_name }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go_version }}
+          cache: true
+          cache-dependency-path: ${{ inputs.working_directory }}/go.sum
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Go build
+        run: go build ./...
+
+      - name: Go test (race + coverage)
+        env:
+          SERVICE_NAME: ${{ inputs.service_name }}
+        run: |
+          go test -count=1 -short -race -coverprofile=coverage.out ./...
+          SUMMARY="$(go tool cover -func=coverage.out | tail -n 1)"
+          echo "### Go Coverage — ${SERVICE_NAME}" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`${SUMMARY}\`" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,44 @@
+name: CI/CD — open-api
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "services/open-api/**"
+      - "proto/order/v1/**"
+      - ".github/workflows/ci-open-api.yml"
+      - ".github/workflows/_reusable-dotnet-ci.yml"
+      - ".github/workflows/_reusable-docker-deploy.yml"
+  push:
+    branches: [develop, main]
+    paths:
+      - "services/open-api/**"
+      - "proto/order/v1/**"
+      - ".github/workflows/ci-open-api.yml"
+      - ".github/workflows/_reusable-dotnet-ci.yml"
+      - ".github/workflows/_reusable-docker-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-open-api-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/_reusable-dotnet-ci.yml
+    with:
+      service_name: open-api
+      solution_path: services/open-api/OpenApi.sln
+
+  build-and-push:
+    needs: test
+    uses: ./.github/workflows/_reusable-docker-deploy.yml
+    with:
+      service_name: open-api
+      dockerfile: services/open-api/Dockerfile
+      target_environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      push_image: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') }}
+    secrets: inherit

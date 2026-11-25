@@ -1,0 +1,45 @@
+name: CI/CD — webhook-service
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "services/webhook-service/**"
+      - "proto/webhook/v1/**"
+      - ".github/workflows/ci-webhook-service.yml"
+      - ".github/workflows/_reusable-go-ci.yml"
+      - ".github/workflows/_reusable-docker-deploy.yml"
+  push:
+    branches: [develop, main]
+    paths:
+      - "services/webhook-service/**"
+      - "proto/webhook/v1/**"
+      - ".github/workflows/ci-webhook-service.yml"
+      - ".github/workflows/_reusable-go-ci.yml"
+      - ".github/workflows/_reusable-docker-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-webhook-service-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/_reusable-go-ci.yml
+    with:
+      service_name: webhook-service
+      working_directory: services/webhook-service
+      go_version: "1.26"
+
+  build-and-push:
+    needs: test
+    uses: ./.github/workflows/_reusable-docker-deploy.yml
+    with:
+      service_name: webhook-service
+      dockerfile: services/webhook-service/Dockerfile
+      target_environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      push_image: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') }}
+    secrets: inherit

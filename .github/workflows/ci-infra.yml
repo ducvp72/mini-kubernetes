@@ -1,0 +1,61 @@
+name: CI — Infra & Compose Validation
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "deploy/**"
+      - "infra/terraform/**"
+      - "docker-compose.yml"
+      - ".github/workflows/ci-infra.yml"
+  push:
+    branches: [develop, main]
+    paths:
+      - "deploy/**"
+      - "infra/terraform/**"
+      - "docker-compose.yml"
+      - ".github/workflows/ci-infra.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-infra-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Compose, Kustomize & Terraform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose topology
+        run: docker compose -f docker-compose.yml config -q
+
+      - name: Validate Kubernetes Kustomize overlays (if present)
+        run: |
+          for env in staging production; do
+            dir="deploy/k8s/overlays/${env}"
+            if [ -d "$dir" ]; then
+              echo "Validating ${dir}..."
+              kubectl kustomize "$dir" >/dev/null
+            else
+              echo "Skipping ${dir} (not present yet)"
+            fi
+          done
+
+      - name: Validate Terraform stacks (if present)
+        run: |
+          if [ ! -d "infra/terraform" ]; then
+            echo "Skipping Terraform validation (infra/terraform not present yet)"
+            exit 0
+          fi
+          terraform fmt -check -recursive infra/terraform
+          for tfdir in $(find infra/terraform -name '*.tf' -exec dirname {} \; | sort -u); do
+            echo "Validating ${tfdir}..."
+            terraform -chdir="$tfdir" init -backend=false -input=false >/dev/null
+            terraform -chdir="$tfdir" validate
+          done
