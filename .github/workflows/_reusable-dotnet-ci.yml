@@ -1,0 +1,73 @@
+name: Reusable — .NET 8 Service CI
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: Logical service name (e.g., open-api, order-service)
+        required: true
+        type: string
+      solution_path:
+        description: Relative path to the .NET solution file
+        required: true
+        type: string
+      test_filter:
+        description: Optional dotnet test --filter expression (empty runs all tests)
+        required: false
+        default: ""
+        type: string
+      dotnet_version:
+        description: .NET SDK version
+        required: false
+        default: "8.0.x"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  dotnet-ci:
+    name: Build & Test (${{ inputs.service_name }})
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet_version }}
+          cache: true
+          cache-dependency-path: services/${{ inputs.service_name }}/**/*.csproj
+
+      - name: Restore dependencies
+        env:
+          SOLUTION_PATH: ${{ inputs.solution_path }}
+        run: dotnet restore "$SOLUTION_PATH" --nologo
+
+      - name: Build (Release)
+        env:
+          SOLUTION_PATH: ${{ inputs.solution_path }}
+        run: dotnet build "$SOLUTION_PATH" --no-restore --configuration Release --nologo
+
+      - name: Run tests
+        env:
+          SOLUTION_PATH: ${{ inputs.solution_path }}
+          TEST_FILTER: ${{ inputs.test_filter }}
+        run: |
+          if [ -n "$TEST_FILTER" ]; then
+            echo "Running filtered tests: $TEST_FILTER"
+            dotnet test "$SOLUTION_PATH" \
+              --no-build \
+              --configuration Release \
+              --nologo \
+              --filter "$TEST_FILTER" \
+              --verbosity normal
+          else
+            echo "Running full test suite"
+            dotnet test "$SOLUTION_PATH" \
+              --no-build \
+              --configuration Release \
+              --nologo \
+              --verbosity normal
+          fi
