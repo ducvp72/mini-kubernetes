@@ -153,6 +153,7 @@ public static class YamlConfigLoader
         config.WebhookClient ??= new WebhookClientConfig();
         config.Grpc ??= new GrpcConfig();
         config.Health ??= new PortConfig();
+        config.Swagger ??= new SwaggerConfig();
     }
 
     private static void ApplyEnvironmentOverrides(
@@ -185,6 +186,7 @@ public static class YamlConfigLoader
         OverrideInt(getEnv, "Grpc__Port", "Grpc.Port", v => config.Grpc.Port = v, errors);
         OverrideBool(getEnv, "Grpc__EnableReflection", "Grpc.EnableReflection", v => config.Grpc.EnableReflection = v, errors);
         OverrideInt(getEnv, "Health__Port", "Health.Port", v => config.Health.Port = v, errors);
+        OverrideBool(getEnv, "Swagger__Enabled", "Swagger.Enabled", v => config.Swagger.Enabled = v, errors);
     }
 
     private static void OverrideString(Func<string, string?> getEnv, string envVar, Action<string> setter)

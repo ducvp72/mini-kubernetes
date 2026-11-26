@@ -48,3 +48,7 @@ grpc:
 
 health:
   port: 8081
+
+swagger:
+  # Enable /swagger UI and /swagger/v1/swagger.json on the HTTP health port (override via Swagger__Enabled)
+  enabled: true
