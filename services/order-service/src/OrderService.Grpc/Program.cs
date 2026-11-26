@@ -66,7 +66,8 @@ builder.Services
     .AddGlobalServices(builder.Configuration)
     .AddApplicationServices()
     .AddInfrastructureServices(builder.Configuration)
-    .AddPresentationServices();
+    .AddPresentationServices()
+    .AddGrpcSwagger();
 
 await using var app = builder.Build();
 
@@ -77,7 +78,9 @@ var readiness = app.Services.GetRequiredService<ReadinessState>();
 readiness.MarkReady();
 app.Lifetime.ApplicationStopping.Register(readiness.MarkDraining);
 
-app.MapOrderServiceEndpoints(serviceConfig.Grpc.EnableReflection);
+app.MapOrderServiceEndpoints(
+    enableReflection: serviceConfig.Grpc.EnableReflection,
+    enableSwagger: serviceConfig.Swagger.Enabled);
 
 await app.RunAsync();
 return 0;

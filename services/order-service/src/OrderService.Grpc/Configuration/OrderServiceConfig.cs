@@ -22,6 +22,8 @@ public sealed class OrderServiceConfig
 
     public PortConfig Health { get; set; } = new();
 
+    public SwaggerConfig Swagger { get; set; } = new();
+
     /// <summary>
     /// Converts the validated configuration into standard .NET configuration keys
     /// for seamless binding into existing IOptions&lt;T&gt; and DI registrations.
@@ -49,7 +51,8 @@ public sealed class OrderServiceConfig
             ["WebhookClient:TimeoutSeconds"] = WebhookClient.TimeoutSeconds.ToString(CultureInfo.InvariantCulture),
             ["Grpc:Port"] = Grpc.Port.ToString(CultureInfo.InvariantCulture),
             ["Grpc:EnableReflection"] = Grpc.EnableReflection.ToString(),
-            ["Health:Port"] = Health.Port.ToString(CultureInfo.InvariantCulture)
+            ["Health:Port"] = Health.Port.ToString(CultureInfo.InvariantCulture),
+            ["Swagger:Enabled"] = Swagger.Enabled.ToString()
         };
     }
 }
@@ -113,4 +116,9 @@ public sealed class GrpcConfig
 public sealed class PortConfig
 {
     public int Port { get; set; }
+}
+
+public sealed class SwaggerConfig
+{
+    public bool Enabled { get; set; } = true;
 }

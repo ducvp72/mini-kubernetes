@@ -34,3 +34,6 @@ grpc:
 
 health:
   port: 8081
+
+swagger:
+  enabled: true
