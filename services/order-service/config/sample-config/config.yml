@@ -16,7 +16,7 @@
 
 connectionStrings:
   # Override via ConnectionStrings__OrderDb in Docker Compose or K8s Secrets.
-  orderDb: "Server=127.0.0.1;Port=3306;Database=mini_k8s_sample;User=REPLACE_WITH_DB_USER;Password=REPLACE_WITH_DB_PASSWORD;Pooling=true;MinimumPoolSize=5;MaximumPoolSize=100;ConnectionTimeout=10;"
+  orderDb: "Server=127.0.0.1;Port=3306;Database=mini_k8s_local;User=admin;Password=admin@123456;Pooling=true;MinimumPoolSize=5;MaximumPoolSize=100;ConnectionTimeout=10;"
 
 database:
   applyMigrationsOnStartup: false

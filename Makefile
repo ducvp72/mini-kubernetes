@@ -1,12 +1,16 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help check-tools proto build test test-unit test-integration up down smoke k8s-validate tf-validate
-
 GOPATH_BIN := $(shell go env GOPATH)/bin
 
-help: ## Show available make targets
-	@echo "Available targets:"
-	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-18s %s\n", $$1, $$2}'
+# ==============================================================================
+# Region: General & Development Toolchain
+# ==============================================================================
+##@ General & Toolchain
+
+.PHONY: help check-tools proto wt
+
+help: ## Show available make targets grouped by scope
+	@awk 'BEGIN {FS = ":.*##"; printf "\nAvailable targets:\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  %-24s %s\n", $$1, $$2 } /^##@/ { printf "\n[%s]\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 check-tools: ## Verify local toolchain prerequisites
 	@./scripts/check-tools.sh
@@ -21,6 +25,17 @@ proto: ## Generate Go gRPC stubs from proto/ definitions (C# stubs generated via
 		--go-grpc_opt=paths=source_relative \
 		proto/webhook/v1/webhook.proto
 	@echo "Generated Go stubs under services/webhook-service/gen/webhook/v1"
+
+wt: ## Read-only worktree review summary (WT=<path> for one worktree)
+	@./scripts/check-worktree.sh $(if $(WT),$(WT),--all)
+
+
+# ==============================================================================
+# Region: Monorepo Full-Stack Targets (All Services)
+# ==============================================================================
+##@ Monorepo Full-Stack
+
+.PHONY: build test test-unit test-integration up run down smoke
 
 build: ## Build .NET and Go services under services/
 	@found=0; \
@@ -80,11 +95,71 @@ test-integration: ## Run Docker container-scoped integration tests
 up: ## Start local stack with Docker Compose
 	docker compose up -d --build
 
+run: up ## Alias for up (start local stack with Docker Compose)
+
 down: ## Stop local stack and remove volumes
 	docker compose down -v
 
 smoke: ## Run local end-to-end smoke test against Docker Compose stack
 	./scripts/smoke-test.sh
+
+
+# ==============================================================================
+# Region: Order Service Scope (Build, Test, Run & Migrations)
+# ==============================================================================
+##@ Order Service Scope
+
+.PHONY: build-order-service test-order-service run-order-service run-order \
+        run-infra down-order-service down-order migrate-order-service \
+        migrate-order migrate-add-order
+
+build-order-service: ## Build .NET OrderService solution
+	dotnet build services/order-service/OrderService.sln --nologo
+
+test-order-service: ## Run all unit tests for OrderService
+	dotnet test services/order-service/OrderService.sln --nologo --filter "TestCategory=Unit" --collect:"XPlat Code Coverage"
+
+run-order-service: ## Start order-service and all dependencies (MySQL, Redpanda, WebhookService)
+	docker compose up -d --build order-service
+
+run-order: run-order-service ## Alias for run-order-service
+
+run-infra: ## Start only storage and messaging infrastructure (MySQL, Redpanda, Kafka UI)
+	docker compose up -d mysql redpanda redpanda-init kafka-ui
+
+down-order-service: ## Stop order-service and its dependent containers
+	docker compose stop order-service webhook-service mock-webhook redpanda-init redpanda mysql
+
+down-order: down-order-service ## Alias for down-order-service
+
+# Database Migrations:
+# - In Docker Compose (`make run-order`), migrations apply automatically on startup
+#   via Database__ApplyMigrationsOnStartup=true in docker-compose.yml.
+# - On Local Host CLI: dotnet-ef (v8.0.13) is pinned locally via .config/dotnet-tools.json.
+#   No global tool installation (`dotnet tool install -g`) is required.
+#   Run `dotnet tool restore` if setting up on a new machine.
+
+migrate-order-service: ## Apply pending EF Core migrations to local MySQL
+	APP_ENV=local dotnet ef database update \
+		--project services/order-service/src/OrderService.Infrastructure \
+		--startup-project services/order-service/src/OrderService.Grpc
+
+migrate-order: migrate-order-service ## Alias for migrate-order-service
+
+migrate-add-order: ## Scaffold new EF Core migration (usage: make migrate-add-order NAME=AddField)
+	@if [ -z "$(NAME)" ]; then echo "Error: NAME is required. Example: make migrate-add-order NAME=AddOrderPriority"; exit 1; fi
+	APP_ENV=local dotnet ef migrations add $(NAME) \
+		--project services/order-service/src/OrderService.Infrastructure \
+		--startup-project services/order-service/src/OrderService.Grpc \
+		--output-dir Persistence/Migrations
+
+
+# ==============================================================================
+# Region: Cloud & IaC Validation
+# ==============================================================================
+##@ Cloud & IaC Validation
+
+.PHONY: k8s-validate tf-validate
 
 k8s-validate: ## Validate Kubernetes kustomize overlays (staging & production)
 	@found=0; \

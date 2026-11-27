@@ -1,7 +1,9 @@
 # Local / Project
 .env
+.env.example
 notes.md
 /doc/
+/.handoff
 
 # Agent worktrees
 .worktrees/
@@ -12,6 +14,7 @@ obj/
 *.user
 *.suo
 .vs/
+.vscode/
 
 # Go
 *.exe

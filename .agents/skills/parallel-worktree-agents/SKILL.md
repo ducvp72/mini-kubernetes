@@ -16,7 +16,7 @@ Use this skill whenever work spans **2+ independent components** in `ducvp72/min
 1. **`develop` is the clean source of truth.** Never write feature/service code in the main checkout on `develop` (or `main`). Allowed in the main checkout: reading, `git fetch`/`pull`, creating/removing worktrees, user-approved sequential merges into `develop`, and pushing `develop`.
 2. **Contract first.** If `proto/order/v1/order.proto` or `proto/webhook/v1/webhook.proto` changes, complete and merge the contract worktree (`feat/<phase>-proto`) into `develop` **before** cutting downstream service worktrees.
 3. **1 Subagent = 1 Worktree = 1 Branch = Disjoint Ownership.** Every parallel subagent works strictly inside its own `.worktrees/<YYYY-MM-DD>-<slug>` directory and branch, and MUST NEVER touch files outside its assigned ownership or alter `proto/`.
-4. **Mandatory User Review Gate.** Nothing merges into `develop` until all worktrees pass their local builds/tests AND the user explicitly approves the combined review summary.
+4. **No Auto-Commit, Merge, or Push / Mandatory User Review Gate.** Neither the coordinator nor any subagent may run `git commit`, `git merge`, or `git push` until the user explicitly allows it. Leave all changes **uncommitted** inside each worktree so the user can review via file changes in their editor/IDE, request fixes, and approve committing, merging into `develop`, and pushing to `origin`.
 5. **Conflict Resolution Against `develop`.** When merging multiple worktrees back into `develop`, resolve any conflict inside the incoming worktree against the updated `develop` branch and re-verify before completing the merge.
 
 ---
@@ -83,18 +83,18 @@ Every subagent prompt **MUST** specify:
    - `.NET 8` subagents: `implement-td`, `dotnet-backend-api`, `ef-core-skill`, `resource-gc-management`, `clean-architecture-ddd`, `database-performance`, `coding-quality`, `high-throughput-scale`, `write-tests`.
    - `Go` subagent: `implement-td`, `high-throughput-scale`, `coding-quality`, `write-tests`.
 5. **Escalation rule:** If a subagent discovers a `proto/` mismatch or needs a shared root file changed, it MUST stop and report back rather than editing outside its ownership.
-6. **Per-worktree verification & commit:** Each subagent runs its own build & unit tests inside its worktree (serialize any integration tests that share fixed local ports or local Docker MySQL/Redpanda!), verifies `git status --short` has no secrets/junk, and commits its work cleanly on its worktree branch (or leaves ready for review as directed by the coordinator).
+6. **Per-worktree verification — DO NOT auto-commit or merge:** Each subagent runs its own build & unit tests inside its worktree (serialize any integration tests that share fixed local ports or local Docker MySQL/Redpanda!), verifies `git status --short` has no secrets/junk, and **MUST NOT run `git commit`, `git merge`, or `git push`**. Leave all edits uncommitted in the worktree so the user can review via file changes.
 
 > **Reactive Wakeup:** Do NOT poll subagents in a loop. End the turn and wait for completion notifications from all subagents.
 
 ### Step 5: Mandatory User Review Gate
-Once all parallel subagents report back green, collect a consolidated diff & evidence summary across all worktrees:
+Once all parallel subagents report back green, collect a consolidated file-change & evidence summary across all worktrees (leaving all worktrees **uncommitted**):
 
 ```bash
 for wt in .worktrees/${DATE}-*; do
   echo "=== $wt ($(git -C "$wt" branch --show-current)) ==="
   git -C "$wt" status --short
-  git -C "$wt" diff --stat develop...HEAD
+  git -C "$wt" diff --stat
 done
 ```
 
@@ -132,7 +132,7 @@ For **each** approved worktree `$WT` on branch `$BRANCH`:
    make build && make test
    # Plus docker compose smoke test / kustomize / terraform validate when applicable
    ```
-5. Only after integrated checks on `develop` are 100% green, push `develop` (confirm if pushing triggers staging CI):
+5. Only after integrated checks on `develop` are 100% green **and the user explicitly approves pushing**, run:
    ```bash
    git push origin develop
    ```

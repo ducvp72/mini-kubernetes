@@ -37,7 +37,11 @@ use it when asked what to do next. Deviate when there is a reason, and say so.
 8. **Strict Environment Isolation & Staging-Verified Promotion Gate.**
    - `staging` (`develop`) and `production` (`main`) **NEVER** share stateful resources: use separate Resource Groups (`rg-mini-k8s-staging`, `rg-mini-k8s-prod`), separate Azure MySQL Flexible Servers, separate Redpanda/Kafka brokers (and separate Redis if added later), separate Secrets, separate Terraform stacks (`infra/terraform/envs/staging/` & `infra/terraform/envs/production/` sharing `infra/terraform/modules/`), separate GitHub Environments & Entra ID OIDC federated credentials, and separate Argo CD Applications.
    - **Strict Promotion Gate:** Merging `develop` -> `main` (promoting to `production`) is decided **ONLY** after `develop` is deployed to `staging`, verified healthy (smoke + load checks), and explicitly approved by the user.
-
+9. **Never auto-commit or merge without explicit user approval (applies to coordinator AND all subagents).**
+   - Neither the main agent nor any subagent may run `git commit`, `git merge`, or `git push` on any worktree branch or original branch (`develop` / `main`) until the user explicitly allows it.
+   - Leave all implementation and test changes **uncommitted** inside each isolated worktree so the user can review every worktree via file changes in their editor/IDE, request fixes if needed, and decide when to commit and merge into `develop`.
+   - Every subagent prompt MUST explicitly include this prohibition (`Do NOT run git commit, git merge, or git push`).
+10. **Direct scoped patch for small fixes:** For small follow-up fixes or minor additions (such as updating `swagger.json`, tweaking a config/test, or fixing review feedback inside a single service worktree), the main agent may edit directly inside that target worktree path without spawning a subagent, provided it touches only that worktree (never `proto/`, other worktrees, `develop`, or `main`), runs `scripts/check-worktree.sh <worktree-path>` first (read-only; shows status incl. untracked files, diff vs `develop`, secret/proto warnings), re-runs that service's build/test inside the worktree after editing, and still obeys **Hard Rule #9** (never `git commit`, `git merge`, or `git push`).
 ---
 
 ## Project-Scoped Skill Suite (`.agents/skills/`)
@@ -127,8 +131,8 @@ Keep plans concise and concrete: target paths, contract changes, verification co
 
 Work inside isolated worktrees in strict dependency order:
 
-1. **Contract first (`feat/<phase>-proto`):** Edit `proto/order/v1/order.proto` and `proto/webhook/v1/webhook.proto`, regenerate C# and Go stubs (`make proto`), verify compilation, commit, and merge `feat/<phase>-proto` into `develop` before launching service subagents.
-2. **Services in parallel (3 independent git worktrees):** Cut `.worktrees/<YYYY-MM-DD>-open-api`, `.worktrees/<YYYY-MM-DD>-order-service`, and `.worktrees/<YYYY-MM-DD>-webhook-service` from updated `develop`. Fan out 3 parallel subagents — one per worktree — following `implement-td`, `write-tests`, and the relevant engineering skills. Service agents must not alter `proto/` — if a contract is wrong, stop and report.
+1. **Contract first (`feat/<phase>-proto`):** Edit `proto/order/v1/order.proto` and `proto/webhook/v1/webhook.proto`, regenerate C# and Go stubs (`make proto`), verify compilation, and pause for user review/approval before committing and merging `feat/<phase>-proto` into `develop` (and before launching service subagents).
+2. **Services in parallel (3 independent git worktrees):** Cut `.worktrees/<YYYY-MM-DD>-open-api`, `.worktrees/<YYYY-MM-DD>-order-service`, and `.worktrees/<YYYY-MM-DD>-webhook-service` from updated `develop`. Fan out 3 parallel subagents — one per worktree — following `implement-td`, `write-tests`, and the relevant engineering skills. Service agents must not alter `proto/` — if a contract is wrong, stop and report. **Subagents MUST NOT run `git commit`, `git merge`, or `git push`** — leave all changes uncommitted inside each worktree for file-change review.
 3. **Manifests, IaC & CI:** Update `deploy/k8s/`, `deploy/argocd/`, `infra/terraform/modules/` & `envs/{staging,production}/`, `.github/workflows/`, or `loadtest/` as scoped.
 4. **Cloud mutations (Guided Cloud Mode):** Present exact `az`, `terraform apply`, or `kubectl apply` commands with a short explanation and wait for user approval before running.
 
@@ -147,9 +151,9 @@ terraform -chdir=infra/terraform/envs/production fmt -check && terraform -chdir=
 ```
 
 **Mandatory User Review Gate:**
-1. When all worktrees finish and pass their verification checks, present a clear summary and diffs from each worktree for human review.
-2. If the user requests changes, apply edits inside the relevant worktree(s) and re-run verification.
-3. **Only after explicit user approval**, proceed to Step 6 to merge sequentially into `develop`.
+1. Leave all worktree changes **uncommitted** (never auto-commit or merge). When all worktrees finish and pass their verification checks, run `scripts/check-worktree.sh --all` (or `make wt`) from the repo root — it must report no cross-worktree file overlaps and no secret warnings (exit 0) — then present a clear summary and file-change overview from each worktree for human review.
+2. If the user requests changes, apply edits inside the relevant worktree(s) (in parallel across independent services via subagents) and re-run verification.
+3. **Only after explicit user approval**, proceed to Step 6 to commit each approved worktree and merge sequentially into `develop`.
 
 ### 6. Merge, Commit, Push & Staging-Verified Promotion
 

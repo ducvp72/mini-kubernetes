@@ -15,8 +15,9 @@ Use this skill ONLY after a Technical Design (`doc/specs/YYYY-MM-DD-<slug>.md`) 
 2. **Brief, crisp comments above complex logic and design patterns.**
    - Above any non-trivial algorithm, concurrency control, transaction boundary, or architectural pattern (e.g., Keyset Cursor Pagination, Outbox Dispatch, Optimistic Concurrency, Idempotency Guard, Exponential Backoff, Repository / Unit of Work), add a short 1–3 line comment stating **what pattern** is used and **why** the block works that way.
    - Do NOT comment trivial getters, obvious assignments, or self-explanatory one-liners.
-3. **Never mutate `develop`.**
+3. **Never mutate `develop` and never auto-commit, merge, or push without user approval.**
    - All edits, builds, and tests run inside isolated Git worktrees under `.worktrees/<YYYY-MM-DD>-<slug>` (or per-service worktrees `.worktrees/<YYYY-MM-DD>-<service>`) cut from `develop`.
+   - Neither the main agent nor any subagent may run `git commit`, `git merge`, or `git push` until the user explicitly allows it after reviewing uncommitted file changes in each worktree.
 4. **Strict environment isolation & Guided Cloud Mode.**
    - `staging` and `production` NEVER share MySQL, Redpanda/Kafka, Redis, Secrets, Terraform state (`infra/terraform/envs/staging` vs `infra/terraform/envs/production`), or OIDC credentials.
    - Never run cloud-mutating commands (`az ... create/delete/update`, `terraform apply/destroy`, `kubectl apply/delete/patch` against AKS, or GitHub environment/OIDC mutations) without first showing the exact command, explaining its effect, and getting explicit user confirmation.
@@ -75,8 +76,8 @@ Run all applicable checks inside each worktree before reporting:
 - `Terraform`: `terraform -chdir=infra/terraform/envs/staging fmt -check && terraform -chdir=infra/terraform/envs/staging validate` (and same for `production`)
 - Confirm `git status --short` contains zero secrets, `.env`, kubeconfigs, or `*.tfstate*`.
 
-### Step 5: User Review Gate (MANDATORY STOP)
-**STOP before merging anything into `develop`.** Present to the user:
+### Step 5: User Review Gate (MANDATORY STOP — NO AUTO-COMMIT, MERGE, OR PUSH)
+**STOP before committing, merging, or pushing anything.** Leave all edits uncommitted in each worktree so the user can review via file changes. Present to the user:
 1. Summary of changes per worktree with clickable file links.
 2. Key design patterns applied (and where brief explanatory comments were placed).
 3. Exact build/test/validation command results (evidence before assertions).

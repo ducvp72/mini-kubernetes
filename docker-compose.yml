@@ -4,10 +4,10 @@ services:
     container_name: mini-k8s-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass123}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin@123456}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-mini_k8s_local}
-      MYSQL_USER: ${MYSQL_USER:-minik8s}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-minik8spass123}
+      MYSQL_USER: ${MYSQL_USER:-admin}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-admin@123456}
     ports:
       - "${MYSQL_HOST_PORT:-3306}:3306"
     command:
