@@ -102,7 +102,7 @@ public sealed class YamlConfigLoaderTests
         var env = new Dictionary<string, string?>
         {
             ["APP_ENV"] = "staging",
-            ["ConnectionStrings__OrderDb"] = "Server=mysql-override;Port=3306;Database=orders;User=secretuser;Password=secretpass;",
+            ["ConnectionStrings__OrderDb"] = "Server=sql-override,1433;Database=orders;User Id=sa;Password=Secret@123456;Encrypt=True;TrustServerCertificate=True;",
             ["Kafka__BootstrapServers"] = "redpanda-override:9092",
             ["Kafka__Topic"] = "order.created.v2",
             ["Kafka__ConsumerGroupId"] = "custom-group",

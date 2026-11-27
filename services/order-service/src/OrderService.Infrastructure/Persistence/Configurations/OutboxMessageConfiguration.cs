@@ -14,34 +14,38 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
 
         builder.Property(x => x.Id)
             .HasColumnName("id")
-            .HasColumnType("bigint unsigned")
+            .HasColumnType("bigint")
+            .HasConversion<long>()
             .ValueGeneratedOnAdd();
 
         builder.Property(x => x.OrderId)
             .HasColumnName("order_id")
-            .HasColumnType("bigint unsigned")
+            .HasColumnType("bigint")
+            .HasConversion<long>()
             .IsRequired();
 
         builder.Property(x => x.EventType)
             .HasColumnName("event_type")
             .HasColumnType("varchar(64)")
             .HasMaxLength(OutboxMessage.MaxEventTypeLength)
+            .IsUnicode(false)
             .IsRequired();
 
         builder.Property(x => x.PartitionKey)
             .HasColumnName("partition_key")
             .HasColumnType("varchar(64)")
             .HasMaxLength(OutboxMessage.MaxPartitionKeyLength)
+            .IsUnicode(false)
             .IsRequired();
 
         builder.Property(x => x.Payload)
             .HasColumnName("payload")
-            .HasColumnType("json")
+            .HasColumnType("nvarchar(max)")
             .IsRequired();
 
         builder.Property(x => x.Status)
             .HasColumnName("status")
-            .HasColumnType("tinyint unsigned")
+            .HasColumnType("tinyint")
             .HasConversion<byte>()
             .HasDefaultValueSql("0")
             .ValueGeneratedNever()
@@ -49,21 +53,21 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
 
         builder.Property(x => x.RetryCount)
             .HasColumnName("retry_count")
-            .HasColumnType("tinyint unsigned")
+            .HasColumnType("tinyint")
             .HasDefaultValueSql("0")
             .ValueGeneratedNever()
             .IsRequired();
 
         builder.Property(x => x.CreatedAt)
             .HasColumnName("created_at")
-            .HasColumnType("datetime(6)")
-            .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+            .HasColumnType("datetime2(6)")
+            .HasDefaultValueSql("SYSUTCDATETIME()")
             .ValueGeneratedNever()
             .IsRequired();
 
         builder.Property(x => x.ProcessedAt)
             .HasColumnName("processed_at")
-            .HasColumnType("datetime(6)")
+            .HasColumnType("datetime2(6)")
             .IsRequired(false);
 
         builder.Ignore(x => x.UpdatedAt);

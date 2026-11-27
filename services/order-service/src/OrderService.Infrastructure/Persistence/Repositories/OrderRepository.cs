@@ -35,7 +35,7 @@ public sealed class OrderRepository : GenericRepository<Order, ulong>, IOrderRep
         return GetByIdempotencyKeyCompiled(DbContext, idempotencyKey, ct);
     }
 
-    // Pattern: Keyset Pagination — SARGable tuple predicate against ALGORITHM=MERGE view vw_order_summary using composite indexes.
+    // Pattern: Keyset Pagination — SARGable predicate against dbo.vw_order_summary using composite indexes.
     public async Task<IReadOnlyList<OrderSummaryView>> ListSummariesByCursorAsync(
         string? customerId,
         int fetchLimit,
@@ -56,34 +56,33 @@ public sealed class OrderRepository : GenericRepository<Order, ulong>, IOrderRep
             {
                 query = DbContext.OrderSummaries.FromSqlInterpolated(
                     $"""
-                     SELECT id, order_code, customer_id, sku, quantity, unit_price, total_amount, status, created_at
-                     FROM vw_order_summary
+                     SELECT TOP ({fetchLimit}) id, order_code, customer_id, sku, quantity, unit_price, total_amount, status, created_at
+                     FROM dbo.vw_order_summary
                      ORDER BY created_at DESC, id DESC
-                     LIMIT {fetchLimit}
                      """);
             }
             else if (direction == CursorDirection.Forward)
             {
+                var cursorId = checked((long)cursor.Id);
                 query = DbContext.OrderSummaries.FromSqlInterpolated(
                     $"""
-                     SELECT id, order_code, customer_id, sku, quantity, unit_price, total_amount, status, created_at
-                     FROM vw_order_summary
+                     SELECT TOP ({fetchLimit}) id, order_code, customer_id, sku, quantity, unit_price, total_amount, status, created_at
+                     FROM dbo.vw_order_summary
                      WHERE created_at < {cursor.CreatedAtUtc}
-                        OR (created_at = {cursor.CreatedAtUtc} AND id < {cursor.Id})
+                        OR (created_at = {cursor.CreatedAtUtc} AND id < {cursorId})
                      ORDER BY created_at DESC, id DESC
-                     LIMIT {fetchLimit}
                      """);
             }
             else
             {
+                var cursorId = checked((long)cursor.Id);
                 query = DbContext.OrderSummaries.FromSqlInterpolated(
                     $"""
-                     SELECT id, order_code, customer_id, sku, quantity, unit_price, total_amount, status, created_at
-                     FROM vw_order_summary
+                     SELECT TOP ({fetchLimit}) id, order_code, customer_id, sku, quantity, unit_price, total_amount, status, created_at
+                     FROM dbo.vw_order_summary
                      WHERE created_at > {cursor.CreatedAtUtc}
-                        OR (created_at = {cursor.CreatedAtUtc} AND id > {cursor.Id})
+                        OR (created_at = {cursor.CreatedAtUtc} AND id > {cursorId})
                      ORDER BY created_at ASC, id ASC
-                     LIMIT {fetchLimit}
                      """);
             }
         }
@@ -93,37 +92,36 @@ public sealed class OrderRepository : GenericRepository<Order, ulong>, IOrderRep
             {
                 query = DbContext.OrderSummaries.FromSqlInterpolated(
                     $"""
-                     SELECT id, order_code, customer_id, sku, quantity, unit_price, total_amount, status, created_at
-                     FROM vw_order_summary
+                     SELECT TOP ({fetchLimit}) id, order_code, customer_id, sku, quantity, unit_price, total_amount, status, created_at
+                     FROM dbo.vw_order_summary
                      WHERE customer_id = {customerId}
                      ORDER BY created_at DESC, id DESC
-                     LIMIT {fetchLimit}
                      """);
             }
             else if (direction == CursorDirection.Forward)
             {
+                var cursorId = checked((long)cursor.Id);
                 query = DbContext.OrderSummaries.FromSqlInterpolated(
                     $"""
-                     SELECT id, order_code, customer_id, sku, quantity, unit_price, total_amount, status, created_at
-                     FROM vw_order_summary
+                     SELECT TOP ({fetchLimit}) id, order_code, customer_id, sku, quantity, unit_price, total_amount, status, created_at
+                     FROM dbo.vw_order_summary
                      WHERE customer_id = {customerId}
                        AND (created_at < {cursor.CreatedAtUtc}
-                            OR (created_at = {cursor.CreatedAtUtc} AND id < {cursor.Id}))
+                            OR (created_at = {cursor.CreatedAtUtc} AND id < {cursorId}))
                      ORDER BY created_at DESC, id DESC
-                     LIMIT {fetchLimit}
                      """);
             }
             else
             {
+                var cursorId = checked((long)cursor.Id);
                 query = DbContext.OrderSummaries.FromSqlInterpolated(
                     $"""
-                     SELECT id, order_code, customer_id, sku, quantity, unit_price, total_amount, status, created_at
-                     FROM vw_order_summary
+                     SELECT TOP ({fetchLimit}) id, order_code, customer_id, sku, quantity, unit_price, total_amount, status, created_at
+                     FROM dbo.vw_order_summary
                      WHERE customer_id = {customerId}
                        AND (created_at > {cursor.CreatedAtUtc}
-                            OR (created_at = {cursor.CreatedAtUtc} AND id > {cursor.Id}))
+                            OR (created_at = {cursor.CreatedAtUtc} AND id > {cursorId}))
                      ORDER BY created_at ASC, id ASC
-                     LIMIT {fetchLimit}
                      """);
             }
         }
@@ -134,15 +132,18 @@ public sealed class OrderRepository : GenericRepository<Order, ulong>, IOrderRep
     // Pattern: Optimistic Concurrency — atomic conditional SQL update prevents race conditions and duplicate webhooks.
     public async Task<bool> TryConfirmOrderAsync(ulong orderId, ulong expectedRowVersion, CancellationToken ct = default)
     {
+        var id = checked((long)orderId);
+        var expectedRv = checked((long)expectedRowVersion);
+
         var affected = await DbContext.Database.ExecuteSqlInterpolatedAsync(
             $"""
-             UPDATE orders
+             UPDATE dbo.orders
              SET status = {(byte)OrderStatus.Confirmed},
                  row_version = row_version + 1,
-                 updated_at = UTC_TIMESTAMP(6)
-             WHERE id = {orderId}
+                 updated_at = SYSUTCDATETIME()
+             WHERE id = {id}
                AND status = {(byte)OrderStatus.Pending}
-               AND row_version = {expectedRowVersion}
+               AND row_version = {expectedRv}
              """,
             ct);
 

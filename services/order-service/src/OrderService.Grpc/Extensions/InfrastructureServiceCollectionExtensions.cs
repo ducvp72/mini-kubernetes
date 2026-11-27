@@ -28,17 +28,13 @@ public static class InfrastructureServiceCollectionExtensions
         var dbOptions = configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
         var webhookOptions = configuration.GetSection(WebhookClientOptions.SectionName).Get<WebhookClientOptions>() ?? new WebhookClientOptions();
 
-        var normalizedConnectionString = OrderDbContextFactory.NormalizeConnectionString(connectionString);
-
-        // Explicit ServerVersion avoids live DB AutoDetect during DI startup and testing.
         services.AddDbContextPool<OrderDbContext>(
-            options => options.UseMySql(
-                normalizedConnectionString,
-                OrderDbContextFactory.MySqlVersion,
-                mysql =>
+            options => options.UseSqlServer(
+                connectionString,
+                sql =>
                 {
-                    mysql.CommandTimeout(dbOptions.CommandTimeoutSeconds);
-                    mysql.MigrationsAssembly(typeof(OrderDbContext).Assembly.FullName);
+                    sql.CommandTimeout(dbOptions.CommandTimeoutSeconds);
+                    sql.MigrationsAssembly(typeof(OrderDbContext).Assembly.FullName);
                 }),
             poolSize: dbOptions.DbContextPoolSize);
 

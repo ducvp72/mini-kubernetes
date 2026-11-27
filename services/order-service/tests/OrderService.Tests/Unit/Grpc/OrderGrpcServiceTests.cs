@@ -285,7 +285,7 @@ public sealed class OrderGrpcServiceTests
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:OrderDb"] = "Server=127.0.0.1;Port=3306;Database=mini_k8s_local;User=minik8s;Password=test;",
+                ["ConnectionStrings:OrderDb"] = "Server=127.0.0.1,1433;Database=mini_k8s_local;User Id=sa;Password=admin@123456;Encrypt=True;TrustServerCertificate=True;",
                 ["Kafka:BootstrapServers"] = "127.0.0.1:19092",
                 ["Kafka:Topic"] = "order.created",
                 ["Kafka:ConsumerGroupId"] = "order-service-workers",

@@ -2,7 +2,7 @@
 # Override container-specific addresses via environment variables (e.g. ConnectionStrings__OrderDb, Kafka__BootstrapServers, WebhookClient__Address).
 
 connectionStrings:
-  orderDb: "Server=127.0.0.1;Port=3306;Database=mini_k8s_local;User=admin;Password=admin@123456;Pooling=true;MinimumPoolSize=5;MaximumPoolSize=100;ConnectionTimeout=10;"
+  orderDb: "Server=127.0.0.1,1433;Database=mini_k8s_local;User Id=sa;Password=admin@123456;Encrypt=True;TrustServerCertificate=True;Connection Timeout=15;"
 
 database:
   applyMigrationsOnStartup: false

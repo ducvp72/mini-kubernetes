@@ -1,15 +1,16 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore.Storage;
-using MySqlConnector;
 using OrderService.Domain.Repositories;
 
 namespace OrderService.Infrastructure.Persistence;
 
-// Pattern: Unit of Work — binds OrderDbContext transactions and MySQL concurrency error classification.
+// Pattern: Unit of Work — binds OrderDbContext transactions and SQL Server concurrency error classification.
 public sealed class EfUnitOfWork : IUnitOfWork
 {
-    private const int MySqlDuplicateEntryErrorCode = 1062;
-    private const int MySqlDeadlockErrorCode = 1213;
-    private const int MySqlLockWaitTimeoutErrorCode = 1205;
+    private const int SqlServerDuplicateKeyIndexErrorCode = 2601;
+    private const int SqlServerDuplicateKeyConstraintErrorCode = 2627;
+    private const int SqlServerDeadlockErrorCode = 1205;
+    private const int SqlServerLockTimeoutErrorCode = 1222;
 
     private readonly OrderDbContext _dbContext;
 
@@ -37,20 +38,21 @@ public sealed class EfUnitOfWork : IUnitOfWork
 
     public bool IsDuplicateKeyException(Exception exception)
     {
-        return HasMySqlErrorNumber(exception, MySqlDuplicateEntryErrorCode);
+        return HasSqlErrorNumber(exception, SqlServerDuplicateKeyIndexErrorCode) ||
+               HasSqlErrorNumber(exception, SqlServerDuplicateKeyConstraintErrorCode);
     }
 
     public bool IsTransientDeadlockException(Exception exception)
     {
-        return HasMySqlErrorNumber(exception, MySqlDeadlockErrorCode) ||
-               HasMySqlErrorNumber(exception, MySqlLockWaitTimeoutErrorCode);
+        return HasSqlErrorNumber(exception, SqlServerDeadlockErrorCode) ||
+               HasSqlErrorNumber(exception, SqlServerLockTimeoutErrorCode);
     }
 
-    private static bool HasMySqlErrorNumber(Exception exception, int targetErrorCode)
+    private static bool HasSqlErrorNumber(Exception exception, int targetErrorCode)
     {
         for (var current = exception; current is not null; current = current.InnerException)
         {
-            if (current is MySqlException mysqlEx && mysqlEx.Number == targetErrorCode)
+            if (current is SqlException sqlEx && sqlEx.Number == targetErrorCode)
             {
                 return true;
             }

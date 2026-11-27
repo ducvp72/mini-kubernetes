@@ -3,7 +3,7 @@
 # NEVER store real credentials in this file.
 
 connectionStrings:
-  orderDb: "Server=mysql-mini-k8s-staging.mysql.database.azure.com;Port=3306;Database=mini_k8s_staging;User=OVERRIDE_VIA_ENV_SECRET;Password=OVERRIDE_VIA_ENV_SECRET;SslMode=Required;Pooling=true;MinimumPoolSize=5;MaximumPoolSize=100;ConnectionTimeout=10;"
+  orderDb: "Server=tcp:sql-mini-k8s-staging.database.windows.net,1433;Initial Catalog=mini_k8s_staging;User ID=OVERRIDE_VIA_ENV_SECRET;Password=OVERRIDE_VIA_ENV_SECRET;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
 
 database:
   applyMigrationsOnStartup: false

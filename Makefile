@@ -119,16 +119,16 @@ build-order-service: ## Build .NET OrderService solution
 test-order-service: ## Run all unit tests for OrderService
 	dotnet test services/order-service/OrderService.sln --nologo --filter "TestCategory=Unit" --collect:"XPlat Code Coverage"
 
-run-order-service: ## Start order-service and all dependencies (MySQL, Redpanda, WebhookService)
+run-order-service: ## Start order-service and all dependencies (SQL Server, Redpanda, WebhookService)
 	docker compose up -d --build order-service
 
 run-order: run-order-service ## Alias for run-order-service
 
-run-infra: ## Start only storage and messaging infrastructure (MySQL, Redpanda, Kafka UI)
-	docker compose up -d mysql redpanda redpanda-init kafka-ui
+run-infra: ## Start only storage and messaging infrastructure (SQL Server, Redpanda, Kafka UI)
+	docker compose up -d sqlserver redpanda redpanda-init kafka-ui
 
 down-order-service: ## Stop order-service and its dependent containers
-	docker compose stop order-service webhook-service mock-webhook redpanda-init redpanda mysql
+	docker compose stop order-service webhook-service mock-webhook redpanda-init redpanda sqlserver
 
 down-order: down-order-service ## Alias for down-order-service
 
@@ -139,7 +139,7 @@ down-order: down-order-service ## Alias for down-order-service
 #   No global tool installation (`dotnet tool install -g`) is required.
 #   Run `dotnet tool restore` if setting up on a new machine.
 
-migrate-order-service: ## Apply pending EF Core migrations to local MySQL
+migrate-order-service: ## Apply pending EF Core migrations to local SQL Server
 	APP_ENV=local dotnet ef database update \
 		--project services/order-service/src/OrderService.Infrastructure \
 		--startup-project services/order-service/src/OrderService.Grpc

@@ -11,13 +11,13 @@ public sealed class OrderSummaryViewConfiguration : IEntityTypeConfiguration<Ord
         builder.ToView("vw_order_summary");
         builder.HasNoKey();
 
-        builder.Property(x => x.Id).HasColumnName("id");
+        builder.Property(x => x.Id).HasColumnName("id").HasConversion<long>();
         builder.Property(x => x.OrderCode).HasColumnName("order_code");
         builder.Property(x => x.CustomerId).HasColumnName("customer_id");
         builder.Property(x => x.Sku).HasColumnName("sku");
-        builder.Property(x => x.Quantity).HasColumnName("quantity");
-        builder.Property(x => x.UnitPrice).HasColumnName("unit_price");
-        builder.Property(x => x.TotalAmount).HasColumnName("total_amount");
+        builder.Property(x => x.Quantity).HasColumnName("quantity").HasConversion<int>();
+        builder.Property(x => x.UnitPrice).HasColumnName("unit_price").HasColumnType("decimal(18,2)");
+        builder.Property(x => x.TotalAmount).HasColumnName("total_amount").HasColumnType("decimal(18,2)");
         builder.Property(x => x.Status).HasColumnName("status").HasConversion<byte>();
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
     }

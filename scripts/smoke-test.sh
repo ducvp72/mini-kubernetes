@@ -60,7 +60,7 @@ assert data["deduplicated"] is True, f"Expected deduplicated=True, got {data}"
 print("OK: Idempotency verified (same orderCode, deduplicated=true).")
 PY
 
-echo "==> 4. Polling GET /api/v1/orders/${ORDER_CODE} until CONFIRMED (MySQL -> Outbox -> Redpanda -> Consumer -> Go Webhook)"
+echo "==> 4. Polling GET /api/v1/orders/${ORDER_CODE} until CONFIRMED (SQL Server -> Outbox -> Redpanda -> Consumer -> Go Webhook)"
 CONFIRMED=0
 for i in $(seq 1 30); do
   curl -fsS "${BASE_URL}/api/v1/orders/${ORDER_CODE}" -o /tmp/smoke_get.json

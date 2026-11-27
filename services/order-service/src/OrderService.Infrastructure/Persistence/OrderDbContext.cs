@@ -19,8 +19,6 @@ public sealed class OrderDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        modelBuilder.HasCharSet("utf8mb4");
-        modelBuilder.UseCollation("utf8mb4_0900_ai_ci");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(OrderDbContext).Assembly);
     }
 }

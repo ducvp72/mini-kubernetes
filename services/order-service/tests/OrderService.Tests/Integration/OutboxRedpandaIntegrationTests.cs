@@ -16,7 +16,7 @@ using OrderService.Domain.Enums;
 using OrderService.Infrastructure.Messaging;
 using OrderService.Infrastructure.Persistence;
 using OrderService.Infrastructure.Persistence.Repositories;
-using Testcontainers.MySql;
+using Testcontainers.MsSql;
 using Testcontainers.Redpanda;
 
 namespace OrderService.Tests.Integration;
@@ -27,31 +27,27 @@ public sealed class OutboxRedpandaIntegrationTests
 {
     private const string TopicName = "order.created";
 
-    private MySqlContainer _mysqlContainer = null!;
+    private MsSqlContainer _sqlContainer = null!;
     private RedpandaContainer _redpandaContainer = null!;
-    private string _mysqlConnectionString = string.Empty;
+    private string _sqlConnectionString = string.Empty;
     private string _bootstrapServers = string.Empty;
 
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
     {
-        _mysqlContainer = new MySqlBuilder()
-            .WithImage("mysql:8.4")
-            .WithDatabase("mini_k8s_outbox_test")
-            .WithUsername("minik8s")
-            .WithPassword("minik8spass123")
-            .WithCommand("--log-bin-trust-function-creators=1", "--performance-schema=OFF")
+        _sqlContainer = new MsSqlBuilder()
+            .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
             .Build();
 
         _redpandaContainer = new RedpandaBuilder()
             .WithImage("redpandadata/redpanda:v24.2.12")
             .Build();
 
-        // Start sequentially to avoid Docker Desktop memory spikes when booting MySQL 8.4 and Redpanda together.
-        await _mysqlContainer.StartAsync();
+        // Start sequentially to avoid Docker Desktop memory spikes when booting SQL Server and Redpanda together.
+        await _sqlContainer.StartAsync();
         await _redpandaContainer.StartAsync();
 
-        _mysqlConnectionString = OrderDbContextFactory.NormalizeConnectionString(_mysqlContainer.GetConnectionString());
+        _sqlConnectionString = _sqlContainer.GetConnectionString();
         _bootstrapServers = _redpandaContainer.GetBootstrapAddress()
             .Replace("PLAINTEXT://", string.Empty, StringComparison.OrdinalIgnoreCase);
 
@@ -75,7 +71,7 @@ public sealed class OutboxRedpandaIntegrationTests
     [OneTimeTearDown]
     public async Task OneTimeTearDown()
     {
-        await Task.WhenAll(_mysqlContainer.DisposeAsync().AsTask(), _redpandaContainer.DisposeAsync().AsTask());
+        await Task.WhenAll(_sqlContainer.DisposeAsync().AsTask(), _redpandaContainer.DisposeAsync().AsTask());
     }
 
     [Test]
@@ -218,7 +214,7 @@ public sealed class OutboxRedpandaIntegrationTests
     private OrderDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<OrderDbContext>()
-            .UseMySql(_mysqlConnectionString, OrderDbContextFactory.MySqlVersion, static mysql => mysql.CommandTimeout(10))
+            .UseSqlServer(_sqlConnectionString, static sql => sql.CommandTimeout(15))
             .Options;
         return new OrderDbContext(options);
     }

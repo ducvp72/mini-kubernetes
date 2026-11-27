@@ -14,7 +14,7 @@ public sealed class OutboxRepository : GenericRepository<OutboxMessage, ulong>, 
     {
     }
 
-    // Pattern: Outbox — invokes sp_claim_outbox_batch (FOR UPDATE SKIP LOCKED) inside an active transaction for lock-free concurrency.
+    // Pattern: Outbox — invokes dbo.sp_claim_outbox_batch (UPDLOCK, READPAST, ROWLOCK) inside an active transaction for lock-free concurrency.
     public async Task<IReadOnlyList<OutboxMessage>> ClaimPendingBatchAsync(int batchSize, CancellationToken ct = default)
     {
         if (batchSize <= 0)
@@ -33,8 +33,8 @@ public sealed class OutboxRepository : GenericRepository<OutboxMessage, ulong>, 
 
         await using var command = connection.CreateCommand();
         command.Transaction = currentTransaction.GetDbTransaction();
-        command.CommandText = "CALL sp_claim_outbox_batch(@batchSize);";
-        command.CommandType = CommandType.Text;
+        command.CommandText = "dbo.sp_claim_outbox_batch";
+        command.CommandType = CommandType.StoredProcedure;
 
         var batchSizeParam = command.CreateParameter();
         batchSizeParam.ParameterName = "@batchSize";
@@ -75,12 +75,14 @@ public sealed class OutboxRepository : GenericRepository<OutboxMessage, ulong>, 
 
     public async Task MarkPublishedAsync(ulong outboxMessageId, DateTime processedAtUtc, CancellationToken ct = default)
     {
+        var id = checked((long)outboxMessageId);
+
         await DbContext.Database.ExecuteSqlInterpolatedAsync(
             $"""
-             UPDATE outbox_messages
+             UPDATE dbo.outbox_messages
              SET status = {(byte)OutboxMessageStatus.Published},
                  processed_at = {processedAtUtc}
-             WHERE id = {outboxMessageId}
+             WHERE id = {id}
              """,
             ct);
     }
@@ -92,13 +94,15 @@ public sealed class OutboxRepository : GenericRepository<OutboxMessage, ulong>, 
         DateTime? processedAtUtc,
         CancellationToken ct = default)
     {
+        var id = checked((long)outboxMessageId);
+
         await DbContext.Database.ExecuteSqlInterpolatedAsync(
             $"""
-             UPDATE outbox_messages
+             UPDATE dbo.outbox_messages
              SET retry_count = {nextRetryCount},
                  status = {(byte)nextStatus},
                  processed_at = {processedAtUtc}
-             WHERE id = {outboxMessageId}
+             WHERE id = {id}
              """,
             ct);
     }

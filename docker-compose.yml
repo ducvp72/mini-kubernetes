@@ -1,29 +1,23 @@
 services:
-  mysql:
-    image: mysql:8.4
-    container_name: mini-k8s-mysql
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: mini-k8s-sqlserver
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin@123456}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-mini_k8s_local}
-      MYSQL_USER: ${MYSQL_USER:-admin}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-admin@123456}
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-admin@123456}"
     ports:
-      - "${MYSQL_HOST_PORT:-3306}:3306"
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_0900_ai_ci
-      - --max-connections=300
-      - --innodb-lock-wait-timeout=10
-      - --log-bin-trust-function-creators=1
+      - "${MSSQL_HOST_PORT:-1433}:1433"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - sqlserver_data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1 -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" || exit 1"]
       interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 15s
+      timeout: 5s
+      retries: 25
+      start_period: 20s
 
   redpanda:
     image: redpandadata/redpanda:v24.2.12
@@ -130,7 +124,7 @@ services:
     container_name: mini-k8s-order-service
     restart: unless-stopped
     depends_on:
-      mysql:
+      sqlserver:
         condition: service_healthy
       redpanda-init:
         condition: service_completed_successfully
@@ -139,7 +133,7 @@ services:
     environment:
       APP_ENV: "${APP_ENV:-local}"
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__OrderDb: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:-mini_k8s_local};User=${MYSQL_USER:-minik8s};Password=${MYSQL_PASSWORD:-minik8spass123};Pooling=true;MinimumPoolSize=5;MaximumPoolSize=100;ConnectionTimeout=10;"
+      ConnectionStrings__OrderDb: "Server=sqlserver,1433;Database=${MSSQL_DATABASE:-mini_k8s_local};User Id=sa;Password=${MSSQL_SA_PASSWORD:-admin@123456};Encrypt=True;TrustServerCertificate=True;Connection Timeout=15;"
       Kafka__BootstrapServers: "redpanda:9092"
       Kafka__Topic: "order.created"
       Kafka__ConsumerGroupId: "order-service-workers"
@@ -188,4 +182,4 @@ services:
       start_period: 10s
 
 volumes:
-  mysql_data:
+  sqlserver_data:

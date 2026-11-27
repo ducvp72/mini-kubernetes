@@ -18,13 +18,15 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.Property(x => x.Id)
             .HasColumnName("id")
-            .HasColumnType("bigint unsigned")
+            .HasColumnType("bigint")
+            .HasConversion<long>()
             .ValueGeneratedOnAdd();
 
-        // MaxLength(36) + IsFixedLength() maps to MySQL char(36) without colliding with Pomelo's Guid char(36) mapping.
         builder.Property(x => x.OrderCode)
             .HasColumnName("order_code")
+            .HasColumnType("char(36)")
             .HasMaxLength(Order.OrderCodeLength)
+            .IsUnicode(false)
             .IsFixedLength()
             .IsRequired();
 
@@ -32,23 +34,27 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasColumnName("idempotency_key")
             .HasColumnType("varchar(128)")
             .HasMaxLength(Order.MaxIdempotencyKeyLength)
+            .IsUnicode(false)
             .IsRequired();
 
         builder.Property(x => x.CustomerId)
             .HasColumnName("customer_id")
             .HasColumnType("varchar(64)")
             .HasMaxLength(Order.MaxCustomerIdLength)
+            .IsUnicode(false)
             .IsRequired();
 
         builder.Property(x => x.Sku)
             .HasColumnName("sku")
             .HasColumnType("varchar(64)")
             .HasMaxLength(Order.MaxSkuLength)
+            .IsUnicode(false)
             .IsRequired();
 
         builder.Property(x => x.Quantity)
             .HasColumnName("quantity")
-            .HasColumnType("int unsigned")
+            .HasColumnType("int")
+            .HasConversion<int>()
             .IsRequired();
 
         builder.Property(x => x.UnitPrice)
@@ -58,7 +64,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.Property(x => x.Status)
             .HasColumnName("status")
-            .HasColumnType("tinyint unsigned")
+            .HasColumnType("tinyint")
             .HasConversion<byte>()
             .HasDefaultValueSql("1")
             .ValueGeneratedNever()
@@ -68,18 +74,21 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasColumnName("callback_url")
             .HasColumnType("varchar(512)")
             .HasMaxLength(Order.MaxCallbackUrlLength)
+            .IsUnicode(false)
             .IsRequired(false);
 
         builder.Property(x => x.SimulateWorkMs)
             .HasColumnName("simulate_work_ms")
-            .HasColumnType("int unsigned")
+            .HasColumnType("int")
+            .HasConversion<int>()
             .HasDefaultValueSql("0")
             .ValueGeneratedNever()
             .IsRequired();
 
         builder.Property(x => x.RowVersion)
             .HasColumnName("row_version")
-            .HasColumnType("bigint unsigned")
+            .HasColumnType("bigint")
+            .HasConversion<long>()
             .HasDefaultValueSql("1")
             .ValueGeneratedNever()
             .IsConcurrencyToken()
@@ -87,15 +96,15 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.Property(x => x.CreatedAt)
             .HasColumnName("created_at")
-            .HasColumnType("datetime(6)")
-            .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+            .HasColumnType("datetime2(6)")
+            .HasDefaultValueSql("SYSUTCDATETIME()")
             .ValueGeneratedNever()
             .IsRequired();
 
         builder.Property(x => x.UpdatedAt)
             .HasColumnName("updated_at")
-            .HasColumnType("datetime(6)")
-            .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+            .HasColumnType("datetime2(6)")
+            .HasDefaultValueSql("SYSUTCDATETIME()")
             .ValueGeneratedNever()
             .IsRequired();
 
